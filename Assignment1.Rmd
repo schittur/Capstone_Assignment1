@@ -12,6 +12,11 @@ The dataset consists of text files from the following sources - blogs, news and 
 
 In the current report we are using the files for US english language only found under en_US subfolder.
 
+#### Source Code
+The source code for this presentation can be found at
+https://github.com/schittur/Capstone_Assignment1/blob/master/Assignment1.Rmd
+
+
 #### Following table shows the file sizes and word counts in the corpus
 
 ```{r, echo=F}
@@ -58,24 +63,34 @@ loadSampleFromAFile <- function(filename, folder) {
     fi <- file.info(filepath);
     con <- file(filepath, open = 'r');
     lines <- readLines(con, encoding = 'UTF-8', n=1000);
-    sample(unlist(lines), 500);
+    s <- sample(unlist(lines), 500);
+    iconv(s, 'UTF-8', 'ASCII', "byte")
 }
 loadSampleFromAllFiles <- function(folder) {
     filenames <- list.files(folder)
-    lapply(filenames, loadSampleFromAFile, folder = folder);
+    slines <- lapply(filenames, loadSampleFromAFile, folder = folder);
+    names(slines) <- filenames;
+    slines
 }
 slines <- loadSampleFromAllFiles(corpus_dir);
-slines <- unlist(slines)
+
+# slines <- unlist(slines)
 # convert all odd characters to ascii
-slines <- iconv(slines, 'UTF-8', 'ASCII', "byte")
+# slines <- iconv(slines, 'UTF-8', 'ASCII', "byte")
 
 ```
 
 #### Loading and cleaning data
-From here on I will be using the 'tm' package to do some exploratory analysis.
+From here on I have used the 'tm' package to do some exploratory analysis.
 
-The first step is to load the Corpus from the sample lines collected and then remove irrelavant things like
-numbers, punctuation marks.
+Steps required for cleaning data are to 
+
+* load the Corpus from the sample lines collected and then 
+  + remove numbers
+  + remove punctuation marks
+  + remove any stop words from english language like 'the', 'a', 'i' etc.. 
+  + remove bad words
+  + convert the text to lowercase to maintain uniformity
 
 #### Profanity filtering
 To address profanity, I downloaded badwords from http://www.bannedwordlist.com/lists/swearWords.csv and removed
@@ -102,16 +117,57 @@ docs <- tm_map(docs, PlainTextDocument);
 
 #### Exploratory Analysis
 
-By using the 'wordcloud' package we can see the words most used. The image below displays the ***100 most used words***.
+By using the 'wordcloud' package we can see the words most used.
+
+For BLOGS
+
 ```{r, echo=F, warning=F, message=F}
 library(wordcloud);
-wordcloud(docs, max.words = 100, colors = brewer.pal(8, 'Dark2'))
-
+wordcloud(docs[1], max.words = 100, colors = brewer.pal(8, 'Dark2'))
 ```
 
-```{r, echo=F}
+For NEWS
+
+```{r, echo=F, warning=F, message=F}
+wordcloud(docs[2], max.words = 100, colors = brewer.pal(8, 'Dark2'))
+```
+
+For TWITTER
+
+```{r, echo=F, warning=F, message=F}
+wordcloud(docs[3], max.words = 100, colors = brewer.pal(8, 'Dark2'))
+```
+
+#### Creating document term and term document matrices
+```{r}
 # start reading document in plain text
 dtm <- DocumentTermMatrix(docs);
 tdm <- TermDocumentMatrix(docs);
+```
+Before removing sparsity
+```{r}
+dtm
+```
+After removing sparsity
+```{r }
+dtm <- removeSparseTerms(dtm, 0.01);
+dtm
+```
 
+
+#### Frequency of words. The list below is the 20 most frequently used words.
+```{r }
+word_frequencies <- colSums(as.matrix(dtm));
+top20 <- word_frequencies[tail(order(word_frequencies), n=20)];
+top20
+```
+
+#### Plotting the top 20 words frequencies
+```{r, echo=F, warning=F, message=F}
+forplot <- data.frame(word=names(top20), freq=top20)
+library(ggplot2)   
+p <- ggplot(forplot, aes(word, freq))
+p <- p + geom_bar(stat="identity")   
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))   
+p
 ```
