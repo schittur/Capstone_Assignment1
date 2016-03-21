@@ -1,0 +1,117 @@
+---
+title: "Coursera Capstone Project First Milestone Report"
+author: Sriram Chitturi
+output: html_document
+---
+
+This report is for the Week2 Assignment of Capstone project for Datascience course on Coursera.
+
+The objective is to do some exploratory analysis of the sample dataset provided by SwiftKey for the project at https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
+
+The dataset consists of text files from the following sources - blogs, news and twitter feeds.
+
+In the current report we are using the files for US english language only found under en_US subfolder.
+
+#### Following table shows the file sizes and word counts in the corpus
+
+```{r, echo=F}
+countwords <- function(line) {
+    words <- unlist(strsplit(line, split = "\\W+"));
+    l = length(words)
+    l
+}
+filedetails <- function(filename, folder) {
+    filepath = paste(folder, filename, sep = '/');
+    fi <- file.info(filepath);
+    con <- file(filepath, open = 'r');
+    lines <- readLines(con, encoding = 'UTF-8', n=10);
+    memsize = as.integer(object.size(lines));
+    close(con);
+    numlines = length(lines);
+    cwords = unlist(lapply(lines, countwords));
+    numwords = sum(cwords);
+    remove(lines);
+    data.frame(FileName = filename, FileSizeInBytes = as.integer(fi[, 'size']),
+                    SizeInMemory = as.integer(memsize),
+                    LineCount=numlines, WordCount=numwords, stringsAsFactors = F)
+}
+
+printfiledetails <- function(folder) {
+    filenames <- list.files(folder)
+    df <- lapply(filenames, filedetails, folder = folder);
+    df <- do.call("rbind", df)
+    print(df);
+}
+
+corpus_dir <- "H://Datascience/Capstone/final/en_US";
+printfiledetails(corpus_dir)
+```
+
+
+#### Resources constraint and sampling
+
+It is taking a long time to process all these files on my laptop, so I am ***processing only a sample of 15,000 lines from each file***.
+
+```{r, echo=FALSE}
+loadSampleFromAFile <- function(filename, folder) {
+    filepath = paste(folder, filename, sep = '/');
+    fi <- file.info(filepath);
+    con <- file(filepath, open = 'r');
+    lines <- readLines(con, encoding = 'UTF-8', n=1000);
+    sample(unlist(lines), 500);
+}
+loadSampleFromAllFiles <- function(folder) {
+    filenames <- list.files(folder)
+    lapply(filenames, loadSampleFromAFile, folder = folder);
+}
+slines <- loadSampleFromAllFiles(corpus_dir);
+slines <- unlist(slines)
+# convert all odd characters to ascii
+slines <- iconv(slines, 'UTF-8', 'ASCII', "byte")
+
+```
+
+#### Loading and cleaning data
+From here on I will be using the 'tm' package to do some exploratory analysis.
+
+The first step is to load the Corpus from the sample lines collected and then remove irrelavant things like
+numbers, punctuation marks.
+
+#### Profanity filtering
+To address profanity, I downloaded badwords from http://www.bannedwordlist.com/lists/swearWords.csv and removed
+them from the words list. 
+
+``` {r, echo=F, warning=F, message=F}
+library(tm) # load text mining library
+docs <- Corpus(VectorSource(slines));
+# clean documents using all available transformations
+docs <- tm_map(docs, removeNumbers);
+docs <- tm_map(docs, removePunctuation);
+#now convert to lowercase before processing english words
+docs <- tm_map(docs, content_transformer(tolower));
+docs <- tm_map(docs, removeWords, stopwords("english"));
+
+# load a list of banned words, one suggested list is here
+badwords = read.csv("http://www.bannedwordlist.com/lists/swearWords.csv");
+docs <- tm_map(docs, removeWords, badwords);
+docs <- tm_map(docs, stripWhitespace);
+
+# create a document term matrix
+docs <- tm_map(docs, PlainTextDocument);
+```
+
+#### Exploratory Analysis
+
+By using the 'wordcloud' package we can see the words most used. The image below displays the ***100 most used words***.
+```{r, echo=F, warning=F, message=F}
+library(wordcloud);
+wordcloud(docs, max.words = 100, colors = brewer.pal(8, 'Dark2'))
+
+```
+
+```{r, echo=F}
+# start reading document in plain text
+dtm <- DocumentTermMatrix(docs);
+tdm <- TermDocumentMatrix(docs);
+
+```
