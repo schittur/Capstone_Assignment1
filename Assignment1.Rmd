@@ -12,14 +12,14 @@ The dataset consists of text files from the following sources - blogs, news and 
 
 In the current report we are using the files for US english language only found under en_US subfolder.
 
-#### Source Code
+### Source Code
 The source code for this presentation can be found at
 https://github.com/schittur/Capstone_Assignment1/blob/master/Assignment1.Rmd
 
 
-#### Following table shows the file sizes and word counts in the corpus
+### Following table shows the file sizes and word counts in the corpus
 
-```{r, echo=F}
+```{r, echo=F, warning=F, message=F}
 countwords <- function(line) {
     words <- unlist(strsplit(line, split = "\\W+"));
     l = length(words)
@@ -29,7 +29,7 @@ filedetails <- function(filename, folder) {
     filepath = paste(folder, filename, sep = '/');
     fi <- file.info(filepath);
     con <- file(filepath, open = 'r');
-    lines <- readLines(con, encoding = 'UTF-8', n=10);
+    lines <- readLines(con, encoding = 'UTF-8');
     memsize = as.integer(object.size(lines));
     close(con);
     numlines = length(lines);
@@ -53,17 +53,17 @@ printfiledetails(corpus_dir)
 ```
 
 
-#### Resources constraint and sampling
+### Resources constraint and sampling
 
 It is taking a long time to process all these files on my laptop, so I am ***processing only a sample of 15,000 lines from each file***.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F, message=F}
 loadSampleFromAFile <- function(filename, folder) {
     filepath = paste(folder, filename, sep = '/');
     fi <- file.info(filepath);
     con <- file(filepath, open = 'r');
-    lines <- readLines(con, encoding = 'UTF-8', n=1000);
-    s <- sample(unlist(lines), 500);
+    lines <- readLines(con, encoding = 'UTF-8');
+    s <- sample(unlist(lines), 15000);
     iconv(s, 'UTF-8', 'ASCII', "byte")
 }
 loadSampleFromAllFiles <- function(folder) {
@@ -80,7 +80,7 @@ slines <- loadSampleFromAllFiles(corpus_dir);
 
 ```
 
-#### Loading and cleaning data
+### Loading and cleaning data
 From here on I have used the 'tm' package to do some exploratory analysis.
 
 Steps required for cleaning data are to 
@@ -92,7 +92,7 @@ Steps required for cleaning data are to
   + remove bad words
   + convert the text to lowercase to maintain uniformity
 
-#### Profanity filtering
+### Profanity filtering
 To address profanity, I downloaded badwords from http://www.bannedwordlist.com/lists/swearWords.csv and removed
 them from the words list. 
 
@@ -115,7 +115,7 @@ docs <- tm_map(docs, stripWhitespace);
 docs <- tm_map(docs, PlainTextDocument);
 ```
 
-#### Exploratory Analysis
+### Exploratory Analysis
 
 By using the 'wordcloud' package we can see the words most used.
 
@@ -138,31 +138,31 @@ For TWITTER
 wordcloud(docs[3], max.words = 100, colors = brewer.pal(8, 'Dark2'))
 ```
 
-#### Creating document term and term document matrices
-```{r}
+### Creating document term and term document matrices
+```{r, echo=F, warning=F, message=F}
 # start reading document in plain text
 dtm <- DocumentTermMatrix(docs);
 tdm <- TermDocumentMatrix(docs);
 ```
 Before removing sparsity
-```{r}
+```{r, echo=F, warning=F, message=F}
 dtm
 ```
 After removing sparsity
-```{r }
+```{r, echo=F, warning=F, message=F}
 dtm <- removeSparseTerms(dtm, 0.01);
 dtm
 ```
 
 
-#### Frequency of words. The list below is the 20 most frequently used words.
-```{r }
+### Frequency of words. The list below is the 20 most frequently used words.
+```{r, echo=F, warning=F, message=F}
 word_frequencies <- colSums(as.matrix(dtm));
 top20 <- word_frequencies[tail(order(word_frequencies), n=20)];
 top20
 ```
 
-#### Plotting the top 20 words frequencies
+### Plotting the top 20 words frequencies
 ```{r, echo=F, warning=F, message=F}
 forplot <- data.frame(word=names(top20), freq=top20)
 library(ggplot2)   
